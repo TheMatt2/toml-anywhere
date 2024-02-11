@@ -5,3 +5,11 @@ __pycache__/
 
 # IDE
 .vscode
+
+# OS
+.DS_Store
+
+# Config Files
+*.ini
+*.cfg
+*.toml
