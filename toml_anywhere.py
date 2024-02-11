@@ -31,6 +31,16 @@ else:
     import tomli as tomllib
 
 
+# JSON Serializer with support for datetime
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        # datetime.isoformat() spec is ISO 8601 compliant and RFC 3339 compliant
+        if isinstance(obj, (datetime.date, datetime.datetime)):
+            return obj.isoformat()
+
+        return super().default(obj)
+
+
 def generate_pairs(config):
     for key, value in config.items():
         key = key.replace('_', '-')
@@ -43,12 +53,13 @@ def generate_pairs(config):
         else:
             # Restore TOML date format
             # datetime.isoformat() spec is ISO 8601 compliant and RFC 3339 compliant
-            if isinstance(value, (datetime.datetime, datetime.date)):
+            if isinstance(value, (datetime.date, datetime.datetime)):
                 value = value.isoformat()
 
             # Format value as JSON if not string
-            if not isinstance(value, str):
-                value = json.dumps(value)
+            # For lists and dictionaries
+            if not isinstance(value, (str, bool)):
+                value = json.dumps(value, cls = DateTimeEncoder)
 
             yield key, value
 
@@ -60,7 +71,12 @@ def config_to_args(config):
     args = []
 
     for key, value in generate_pairs(config):
-        args.extend([f"--{key}", f"{value}"])
+        # Add argument as flag is value is True, not a different type
+        if isinstance(value, bool):
+            if value:
+                args.extend([f"--{key}"])
+        else:
+            args.extend([f"--{key}", f"{value}"])
 
     return args
 
